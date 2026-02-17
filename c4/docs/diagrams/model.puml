@@ -1,0 +1,55 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+LAYOUT_WITH_LEGEND()
+title Marketplace — C4 Container (simplified)
+
+Person(customer, "Покупатель")
+Person(seller, "Продавец")
+
+System_Boundary(mp, "Marketplace") {
+
+  Container(app, "Web/Mobile App", "UI", "Покупатели и продавцы")
+  Container(api, "API Gateway", "HTTP", "Единая точка входа")
+
+  Container(userSvc, "User Service", "HTTP", "Пользователи и роли")
+  Container(catalogSvc, "Catalog Service", "HTTP", "Каталог товаров")
+  Container(feedSvc, "Feed Service", "HTTP", "Лента/персонализация")
+  Container(orderSvc, "Order Service", "HTTP", "Оформление заказов/статусы")
+  Container(paymentSvc, "Payment Service", "HTTP", "Платежи")
+  Container(notifySvc, "Notification Service", "HTTP", "Уведомления")
+
+  Container(broker, "Message Broker", "Kafka/RabbitMQ", "События домена")
+
+  ContainerDb(userDb, "User DB", "PostgreSQL", "Данные пользователей")
+  ContainerDb(catalogDb, "Catalog DB", "PostgreSQL", "Данные каталога")
+  ContainerDb(orderDb, "Order DB", "PostgreSQL", "Данные заказов")
+  ContainerDb(paymentDb, "Payment DB", "PostgreSQL", "Данные платежей")
+}
+
+System_Ext(payProvider, "Payment Provider", "Внешний эквайринг")
+System_Ext(msgProvider, "SMS/Email/Push Provider", "Внешняя отправка")
+
+Rel(customer, app, "Использует", "HTTPS")
+Rel(seller, app, "Использует", "HTTPS")
+Rel(app, api, "Вызывает API", "HTTPS")
+
+Rel(api, userSvc, "CRUD/чтение", "HTTP")
+Rel(api, catalogSvc, "CRUD/чтение", "HTTP")
+Rel(api, feedSvc, "Получить ленту", "HTTP")
+Rel(api, orderSvc, "Создать/смотреть заказ", "HTTP")
+Rel(api, paymentSvc, "Инициация/статус платежа", "HTTP")
+
+Rel(userSvc, userDb, "", "")
+Rel(catalogSvc, catalogDb, "", "")
+Rel(orderSvc, orderDb, "", "")
+Rel(paymentSvc, paymentDb, "", "")
+
+Rel(orderSvc, broker, "OrderCreated/StatusChanged", "Async")
+Rel(paymentSvc, broker, "PaymentSucceeded/Failed", "Async")
+Rel(broker, notifySvc, "События заказов/платежей", "Async")
+
+Rel(paymentSvc, payProvider, "Оплата", "HTTPS")
+Rel(notifySvc, msgProvider, "Отправка уведомлений", "HTTPS")
+
+@enduml
+
