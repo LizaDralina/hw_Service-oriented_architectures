@@ -1,0 +1,28 @@
+@startuml
+title "Modular Monolith"
+left to right direction
+skinparam shadowing false
+skinparam packageStyle rectangle
+
+actor "Покупатель" as customer
+actor "Продавец" as seller
+
+rectangle "Web/Mobile App" as app
+
+package "Marketplace (Monolith)" as mono {
+  rectangle "Backend Monolith\n<<HTTP REST>>\n- Users\n- Catalog\n- Feed\n- Orders\n- Payments\n- Notifications" as backend
+  database "Marketplace DB\n<<PostgreSQL>>\n(shared schema)" as db
+}
+
+cloud "Payment Provider\n(External)" as payProvider
+cloud "Email/SMS/Push Provider\n(External)" as msgProvider
+
+customer --> app : HTTPS
+seller --> app : HTTPS
+app --> backend : REST/HTTPS
+
+backend --> db : SQL 
+
+backend --> payProvider : HTTPS
+backend --> msgProvider : HTTPS
+@enduml
