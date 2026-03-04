@@ -10,10 +10,10 @@ create table products (
   updated_at timestamptz not null default now()
 );
 
--- индекс на status (требование)
+-- индекс на status 
 create index idx_products_status on products(status);
 
--- авто-обновление updated_at (требование)
+-- авто-обновление updated_at 
 create or replace function set_updated_at()
 returns trigger as $$
 begin

@@ -1,3 +1,6 @@
+from fastapi import HTTPException
+from openapi_server.models.error_response import ErrorResponse
+
 from typing import Dict, List  
 import importlib
 import pkgutil
@@ -24,11 +27,13 @@ from src.service import ProductService
 router = APIRouter()
 
 
-def _raise_error(status_code: int, error_code: str, message: str, details: dict | None = None) -> None:
-    raise HTTPException(
-        status_code=status_code,
-        detail={"error_code": error_code, "message": message, "details": details},
+def raise_contract_error(status_code: int, error_code: str, message: str, details: dict | None = None) -> None:
+    err = ErrorResponse.from_dict(
+        {"error_code": error_code, "message": message, "details": details}
     )
+
+    raise HTTPException(status_code=status_code, detail=err.to_dict())
+
 
 @router.delete(
     "/products/{id}",
@@ -48,7 +53,7 @@ async def archive_product(
         ok = ProductService(db).archive(id)
 
     if not ok:
-        _raise_error(
+        raise_contract_error(
             status_code=http_status.HTTP_404_NOT_FOUND,
             error_code="PRODUCT_NOT_FOUND",
             message="Product not found",
@@ -74,7 +79,7 @@ async def create_product(
     response: Response = None,
 ) -> ProductResponse:
     if product_create is None:
-        _raise_error(
+        raise_contract_error(
             status_code=http_status.HTTP_400_BAD_REQUEST,
             error_code="VALIDATION_ERROR",
             message="Request body is required",
@@ -87,30 +92,13 @@ async def create_product(
     response.status_code = http_status.HTTP_201_CREATED
     return created
 
-
-@router.get(
-    "/products/{id}",
-    responses={
-        200: {"model": ProductResponse, "description": "OK"},
-        404: {"description": "Not found"},
-    },
-    tags=["Products"],
-    summary="Get product by ID",
-    response_model_by_alias=True,
-)
-async def get_product_by_id(
-    id: str = Path(..., description=""),
-) -> ProductResponse:
+@router.get("/products/{id}", response_model_by_alias=True, tags=["Products"])
+async def get_product_by_id(id: str = Path(..., description="")) -> ProductResponse:
     with SessionLocal() as db:
         product = ProductService(db).get(id)
 
     if product is None:
-        _raise_error(
-            status_code=http_status.HTTP_404_NOT_FOUND,
-            error_code="PRODUCT_NOT_FOUND",
-            message="Product not found",
-            details={"id": id},
-        )
+        raise_contract_error(404, "PRODUCT_NOT_FOUND", "Product not found", {"id": id})
 
     return product
 
@@ -150,7 +138,7 @@ async def update_product(
     product_update: ProductUpdate = Body(None, description=""),
 ) -> ProductResponse:
     if product_update is None:
-        _raise_error(
+        raise_contract_error(
             status_code=http_status.HTTP_400_BAD_REQUEST,
             error_code="VALIDATION_ERROR",
             message="Request body is required",
@@ -161,7 +149,7 @@ async def update_product(
         updated = ProductService(db).update(id, product_update)
 
     if updated is None:
-        _raise_error(
+        raise_contract_error(
             status_code=http_status.HTTP_404_NOT_FOUND,
             error_code="PRODUCT_NOT_FOUND",
             message="Product not found",
