@@ -86,10 +86,12 @@ class FlightService(pb2_grpc.FlightServiceServicer):
                 select(Flight)
                 .where(Flight.departure_airport == departure_airport)
                 .where(Flight.arrival_airport == arrival_airport)
+                .where(Flight.status == FlightStatus.SCHEDULED)
                 .where(Flight.departure_time >= date_from)
                 .where(Flight.departure_time <= date_to)
                 .order_by(Flight.departure_time.asc())
             )
+           
             flights = session.execute(stmt).scalars().all()
 
             return pb2.SearchFlightsResponse(
