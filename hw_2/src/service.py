@@ -149,9 +149,9 @@ class ProductService:
             {"id": product_id},
         ).mappings().first()
 
-        if row is None:
-            self.db.rollback()
-            return False
+        # if row is None:
+        #     self.db.rollback()
+        #     return False
 
         self.db.commit()
         return True

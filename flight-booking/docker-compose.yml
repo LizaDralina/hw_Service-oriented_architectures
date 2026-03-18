@@ -1,0 +1,96 @@
+version: "3.9"
+
+services:
+  booking_db:
+    image: postgres:16
+    container_name: booking_db
+    environment:
+      POSTGRES_DB: booking_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d booking_db"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  flight_db:
+    image: postgres:16
+    container_name: flight_db
+    environment:
+      POSTGRES_DB: flight_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5434:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d flight_db"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  flyway_booking:
+    image: flyway/flyway:10
+    container_name: flyway_booking
+    depends_on:
+      booking_db:
+        condition: service_healthy
+    command:
+      - -url=jdbc:postgresql://booking_db:5432/booking_db
+      - -user=postgres
+      - -password=postgres
+      - -locations=filesystem:/flyway/sql
+      - migrate
+    volumes:
+      - ./migrations/booking:/flyway/sql
+
+  flyway_flight:
+    image: flyway/flyway:10
+    container_name: flyway_flight
+    depends_on:
+      flight_db:
+        condition: service_healthy
+    command:
+      - -url=jdbc:postgresql://flight_db:5432/flight_db
+      - -user=postgres
+      - -password=postgres
+      - -locations=filesystem:/flyway/sql
+      - migrate
+    volumes:
+      - ./migrations/flight:/flyway/sql
+
+  flight_service:
+    build:
+      context: .
+      dockerfile: flight_service/Dockerfile
+    container_name: flight_service
+    depends_on:
+      flight_db:
+        condition: service_healthy
+      flyway_flight:
+        condition: service_completed_successfully
+    environment:
+      DATABASE_URL: postgresql+psycopg2://postgres:postgres@flight_db:5432/flight_db
+      GRPC_PORT: 50051
+    ports:
+      - "50051:50051"
+
+  booking_service:
+    build:
+      context: .
+      dockerfile: booking_service/Dockerfile
+    container_name: booking_service
+    depends_on:
+      booking_db:
+        condition: service_healthy
+      flyway_booking:
+        condition: service_completed_successfully
+      flight_service:
+        condition: service_started
+    environment:
+      DATABASE_URL: postgresql+psycopg2://postgres:postgres@booking_db:5432/booking_db
+      FLIGHT_GRPC_TARGET: flight_service:50051
+    ports:
+      - "8000:8000"

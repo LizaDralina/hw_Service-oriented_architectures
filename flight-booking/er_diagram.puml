@@ -1,0 +1,55 @@
+@startuml
+hide circle
+skinparam linetype ortho
+skinparam entity {
+  BackgroundColor White
+  BorderColor Black
+  FontName Arial
+}
+
+title Flight Booking System ER Diagram
+
+entity "BOOKING" as booking {
+  * id : UUID <<PK>>
+  --
+  passenger_name : VARCHAR(255)
+  passenger_email : VARCHAR(255)
+  flight_id : UUID
+  seat_count : INT
+  total_price : NUMERIC(10,2)
+  status : booking_status
+  created_at : TIMESTAMPTZ
+  updated_at : TIMESTAMPTZ
+}
+
+entity "FLIGHT" as flight {
+  * id : UUID <<PK>>
+  --
+  airline : VARCHAR(100)
+  flight_number : VARCHAR(20)
+  departure_airport : CHAR(3)
+  arrival_airport : CHAR(3)
+  departure_time : TIMESTAMPTZ
+  arrival_time : TIMESTAMPTZ
+  departure_date : DATE
+  total_seats : INT
+  available_seats : INT
+  price : NUMERIC(10,2)
+  status : flight_status
+  created_at : TIMESTAMPTZ
+  updated_at : TIMESTAMPTZ
+}
+
+entity "SEAT_RESERVATION" as seat_reservation {
+  * id : UUID <<PK>>
+  --
+  flight_id : UUID <<FK>>
+  booking_id : UUID <<UNIQUE>>
+  seat_count : INT
+  status : reservation_status
+  created_at : TIMESTAMPTZ
+  updated_at : TIMESTAMPTZ
+}
+
+flight ||--o{ seat_reservation : has
+@enduml
